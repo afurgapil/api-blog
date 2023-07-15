@@ -2,18 +2,19 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const dotenv = require("dotenv");
 const Article = require("./models/articles");
 const User = require("./models/users");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+dotenv.config();
 
-// Bir yazıya like ekleme
-
+// Add like to an article
 app.put("/api/articles/:id/like", async (req, res) => {
   const { id } = req.params;
-  const { userId } = req.body; // Kullanıcının kimliği
+  const { userId } = req.body;
 
   try {
     const updatedArticle = await Article.findByIdAndUpdate(
@@ -23,20 +24,20 @@ app.put("/api/articles/:id/like", async (req, res) => {
     );
 
     if (!updatedArticle) {
-      return res.status(404).json({ error: "Yazı bulunamadı" });
+      return res.status(404).json({ error: "Article not found" });
     }
 
     res.json(updatedArticle);
   } catch (error) {
-    console.error("Yazı beğenme hatası:", error);
-    res.status(500).json({ error: "Yazı beğenme hatası" });
+    console.error("Error adding like to article:", error);
+    res.status(500).json({ error: "Error adding like to article" });
   }
 });
 
-// Bir yazıya dislike ekleme
+// Add dislike to an article
 app.put("/api/articles/:id/dislike", async (req, res) => {
   const { id } = req.params;
-  const { userId } = req.body; // Kullanıcının kimliği
+  const { userId } = req.body;
 
   try {
     const updatedArticle = await Article.findByIdAndUpdate(
@@ -46,56 +47,57 @@ app.put("/api/articles/:id/dislike", async (req, res) => {
     );
 
     if (!updatedArticle) {
-      return res.status(404).json({ error: "Yazı bulunamadı" });
+      return res.status(404).json({ error: "Article not found" });
     }
 
     res.json(updatedArticle);
   } catch (error) {
-    console.error("Yazı beğenmeme hatası:", error);
-    res.status(500).json({ error: "Yazı beğenmeme hatası" });
+    console.error("Error adding dislike to article:", error);
+    res.status(500).json({ error: "Error adding dislike to article" });
   }
 });
 
-// Favoriye ekleme endpoint'i
+// Add to favorites endpoint
 app.put("/api/articles/:articleId/favorite", async (req, res) => {
   const { articleId } = req.params;
   const { userId } = req.body;
 
   try {
-    // Kullanıcının favorilere eklediği makaleleri güncelle
+    // Update the user's favorite articles
     await User.findByIdAndUpdate(userId, { $push: { favorites: articleId } });
 
-    // Makalenin favorilendiği kullanıcıları güncelle
+    // Update the users who have favorited the article
     await Article.findByIdAndUpdate(articleId, {
       $push: { favorites: userId },
     });
 
-    res.status(200).json({ message: "Makale favorilere eklendi." });
+    res.status(200).json({ message: "Article added to favorites." });
   } catch (error) {
-    res.status(500).json({ error: "Bir hata oluştu." });
+    res.status(500).json({ error: "An error occurred." });
   }
 });
 
-// Favoriden çıkarma endpoint'i
+// Remove from favorites endpoint
 app.delete("/api/articles/:articleId/unfavorite", async (req, res) => {
   const { articleId } = req.params;
   const { userId } = req.body;
 
   try {
-    // Kullanıcının favorilerinden makaleyi kaldır
+    // Remove the article from the user's favorites
     await User.findByIdAndUpdate(userId, { $pull: { favorites: articleId } });
 
-    // Makalenin favorilendiği kullanıcıları güncelle
+    // Update the users who have favorited the article
     await Article.findByIdAndUpdate(articleId, {
       $pull: { favorites: userId },
     });
 
-    res.status(200).json({ message: "Makale favorilerden çıkarıldı." });
+    res.status(200).json({ message: "Article removed from favorites." });
   } catch (error) {
-    res.status(500).json({ error: "Bir hata oluştu." });
+    res.status(500).json({ error: "An error occurred." });
   }
 });
-// Favorileri listeleme endpoint'i
+
+// List favorites endpoint
 app.get("/api/articles/favorites/:userId", async (req, res) => {
   const { userId } = req.params;
 
@@ -103,99 +105,102 @@ app.get("/api/articles/favorites/:userId", async (req, res) => {
     const user = await User.findById(userId).populate("favorites");
 
     if (!user) {
-      return res.status(404).json({ error: "Kullanıcı bulunamadı." });
+      return res.status(404).json({ error: "User not found." });
     }
 
     res.status(200).json(user.favorites);
   } catch (error) {
-    res.status(500).json({ error: "Bir hata oluştu." });
+    res.status(500).json({ error: "An error occurred." });
   }
 });
 
-// Kullanıcıları getirme
+// Get users
 app.get("/api/users", async (req, res) => {
   try {
     const users = await User.find();
     res.json(users);
   } catch (error) {
-    res.status(500).json({ error: "Kullanıcıları getirme hatası" });
+    res.status(500).json({ error: "Error getting users" });
   }
 });
 
-// Kullanıcının isAdmin özelliğini güncelleme
+// Update user isAdmin property
 app.put("/api/users/:id/admin", async (req, res) => {
   const { id } = req.params;
+
   try {
     const user = await User.findById(id);
     if (!user) {
-      return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      return res.status(404).json({ error: "User not found" });
     }
 
     user.isAdmin = true;
     await user.save();
 
-    res.json({ message: "Kullanıcı admin yetkisi verildi" });
+    res.json({ message: "User has been granted admin privileges" });
   } catch (error) {
-    res.status(500).json({ error: "Kullanıcı admin yetkisi verme hatası" });
+    res.status(500).json({ error: "Error granting admin privileges to user" });
   }
 });
-//signup
+
+// Signup
 app.post("/api/signup", async (req, res) => {
   const { username, email, password } = req.body;
   try {
     const user = await User.create({ username, email, password });
     res.status(201).json(user);
   } catch (error) {
-    res.status(500).json({ error: "Kullanıcı kaydetme hatası" });
+    res.status(500).json({ error: "Error saving user" });
   }
 });
-//signin
+
+// Signin
 app.post("/api/signin", async (req, res) => {
   const { username, password } = req.body;
   try {
     const user = await User.findOne({ username });
     if (!user) {
-      return res.status(401).json({ error: "Kullanıcı bulunamadı" });
+      return res.status(401).json({ error: "User not found" });
     }
 
-    // Parolayı kontrol et
+    // Check password
     if (user.password !== password) {
-      return res.status(401).json({ error: "Geçersiz parola" });
+      return res.status(401).json({ error: "Invalid password" });
     }
 
-    // Kullanıcı oturum açtı
+    // User logged in
     res.json(user);
   } catch (error) {
-    res.status(500).json({ error: "Oturum açma hatası" });
+    res.status(500).json({ error: "Error signing in" });
   }
 });
 
-//yazılar
-// Tüm yazıları getirme
+// Articles
+// Get all articles
 app.get("/api/articles", async (req, res) => {
   try {
     const articles = await Article.find();
     res.json(articles);
   } catch (error) {
-    res.status(500).json({ error: "Yazıları getirme hatası" });
+    res.status(500).json({ error: "Error getting articles" });
   }
 });
 
-// Belirli bir yazıyı getirme
+// Get a specific article
 app.get("/api/articles/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const article = await Article.findById(id);
     if (!article) {
-      return res.status(404).json({ error: "Yazı bulunamadı" });
+      return res.status(404).json({ error: "Article not found" });
     }
     res.json(article);
   } catch (error) {
-    res.status(500).json({ error: "Yazı getirme hatası" });
+    res.status(500).json({ error: "Error getting article" });
   }
 });
 
-// Yeni bir yazı oluşturma
+// Create a new article
 app.post("/api/addBlog", async (req, res) => {
   const { title, article } = req.body;
 
@@ -206,16 +211,16 @@ app.post("/api/addBlog", async (req, res) => {
     });
 
     await newArticle.save();
-    console.log("Makale başarıyla kaydedildi:", newArticle);
+    console.log("Article successfully saved:", newArticle);
 
     res.json(newArticle);
   } catch (err) {
-    console.error("Makale kaydetme hatası:", err);
-    res.status(500).json({ error: "Makale kaydetme hatası" });
+    console.error("Error saving article:", err);
+    res.status(500).json({ error: "Error saving article" });
   }
 });
 
-// Bir yazıyı güncelleme
+// Update an article
 app.put("/api/articles/:id", async (req, res) => {
   const { id } = req.params;
   const { title, article } = req.body;
@@ -227,35 +232,32 @@ app.put("/api/articles/:id", async (req, res) => {
     );
 
     if (!updatedArticle) {
-      return res.status(404).json({ error: "Yazı bulunamadı" });
+      return res.status(404).json({ error: "Article not found" });
     }
 
-    console.log("Güncellenen Yazı:", updatedArticle);
+    console.log("Updated Article:", updatedArticle);
     res.json(updatedArticle);
   } catch (error) {
-    console.error("Yazı güncelleme hatası:", error);
-    res.status(500).json({ error: "Yazı güncelleme hatası" });
+    console.error("Error updating article:", error);
+    res.status(500).json({ error: "Error updating article" });
   }
 });
 
-// Bir yazıyı silme
+// Delete an article
 app.delete("/api/articles/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const deletedArticle = await Article.findByIdAndDelete(id);
     if (!deletedArticle) {
-      return res.status(404).json({ error: "Yazı bulunamadı" });
+      return res.status(404).json({ error: "Article not found" });
     }
-    res.json({ message: "Yazı başarıyla silindi" });
+    res.json({ message: "Article successfully deleted" });
   } catch (error) {
-    res.status(500).json({ error: "Yazı silme hatası" });
+    res.status(500).json({ error: "Error deleting article" });
   }
 });
-
 mongoose
-  .connect(
-    "mongodb+srv://gafur:12345@blog.qdvhefi.mongodb.net/?retryWrites=true&w=majority"
-  )
+  .connect(process.env.MONGODB)
   .then(() => {
     console.log("Connected to DB");
     app.listen(8080, () => {
