@@ -33,7 +33,7 @@ For the first time I developed a project using MERN technologies. Since I am new
 > You can run the server with "nodejs" and the project with "serve" packages. Make sure you have these packages installed on your computer
 
 1. Start the backend server first: `node server.js`
-2. Start the frontend application: `cd lang-app && serve dist`
+2. Start the frontend application: `cd frontend && serve dist`
 3. Check the console output and go to the specified link. Then you can use the application!
 
 ## Contributing
