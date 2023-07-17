@@ -1,4 +1,4 @@
-# Apilang
+# Api-Blog
 
 Api-Blog is a blog page created using MERN.
 
